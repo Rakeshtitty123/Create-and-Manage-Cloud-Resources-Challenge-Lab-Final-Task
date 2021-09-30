@@ -116,7 +116,7 @@ $ gcloud compute target-pools create nginx-pool
 
 n
 
-3.You will given lists of regions with their numbers select the region 23 (us -east-1b)
+3.You will be given lists of regions with their numbers select the region 23 (us -east-1b)
 
 23
 
