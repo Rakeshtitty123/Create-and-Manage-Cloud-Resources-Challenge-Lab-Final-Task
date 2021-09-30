@@ -206,4 +206,4 @@ Part 10:Computing forwarding-rules list
 
 ---------------------------------------------------------------------------------------------------------------------------------------------------
 
-gcloud compute forwarding-rules list
+$ gcloud compute forwarding-rules list
