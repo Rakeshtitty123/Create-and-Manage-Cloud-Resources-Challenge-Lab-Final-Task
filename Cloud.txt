@@ -1,0 +1,209 @@
+-----------------------------------------------------------------------------------------------------------------------------------
+
+Task 1: Create a project jumphost instance
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+1.In the Cloud Console, on the Navigation menu(---), click Compute Engine > VM Instances.
+
+2.To create a new instance, click CREATE INSTANCE.
+
+3.Name the instance nucleus-jumphost.
+
+4.Set the machine series type to N1.
+
+5.Use an f1-micro machine type.
+
+6.Leave the remaining configurations to default
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+Alternative method:
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+You can use direct cloud shell commands to create vm instances.
+
+1.Open cloud Shell and write the following command.
+
+2.
+
+$ gcloud compute instances create nucleus-jumphost \
+--network nucleus-vpc \
+--zone us-east1-b  \
+--machine-type f1-micro  \
+--image-family debian-9  \
+--image-project debian-cloud
+
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+Task 2: Create a Kubernetes service cluster
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+Part 1:Creating the cluster in us-east1-b zone.
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud config set compute/zone us-east1-b
+
+--------------------------------------------------------------------------------------------------------------------------------
+
+Part2.Creating the cluster with nucleus-jumphost-webserver1 
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud container clusters create nucleus-jumphost-webserver1
+
+$ gcloud container clusters get-credentials nucleus-jumphost-webserver1
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+Part3.Deploying the hello app on the nuclues-jumphost-webserver1
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+$ kubectl create deployment  hello-app --image=gcr.io/google-samples/hello-app:2.0
+
+$ kubectl expose deployment hello-app --type=LoadBalancer --port 8080
+
+$ kubectl get service
+
+-------------------------------------------------------------------------------------------------------------------------------------
+4.You can check the working of webserver app at the IP adreess that is in the  previous command 
+
+http://[EXTERNAL-IP]:8080
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+Task 3: Set up an HTTP load balancer
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+Part 1:Configuring the web servers
+
+-----------------------------------------------------------------------------------------------------------------------------------------
+
+cat << EOF > startup.sh
+#! /bin/bash
+apt-get update
+apt-get install -y nginx
+service nginx start
+sed -i -- 's/nginx/Google Cloud Platform - '"\$HOSTNAME"'/' /var/www/html/index.nginx-debian.html
+EOF
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 2:Create an instance template
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+$ gcloud compute instance-templates create nginx-template \
+--metadata-from-file startup-script=startup.sh \
+--network nucleus-vpc \
+--machine-type g1-small \
+--region us-east1
+
+------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 3:Create a target pool
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud compute target-pools create nginx-pool
+
+2.You will be prompted with yes/no in setting the default region.Selct no with n letter
+
+n
+
+3.You will given lists of regions with their numbers select the region 23 (us -east-1b)
+
+23
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 4:Create a managed instance group
+
+-------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud compute instance-groups managed create nginx-group \
+--base-instance-name nginx \
+--size 2 \
+--template nginx-template \
+--region us-east1 \
+--target-pool nginx-pool
+
+$ gcloud compute instances list
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 5:Create a firewall rule to allow traffic (80/tcp)
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud compute firewall-rules create www-firewall --allow tcp:80
+ 
+$ gcloud compute forwarding-rules create nginx-lb \
+--region us-east1 \
+--ports=80 \
+--target-pool nginx-pool
+
+$ gcloud compute forwarding-rules list
+      
+$ gcloud compute http-health-checks create http-basic-check
+
+$ gcloud compute instance-groups managed set-named-ports nginx-group --named-ports http:80 --region us-east1
+
+------------------------------------------------------------------------------------------------------------------------------------
+
+Part 6:Create a health check
+
+--------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud compute backend-services create nginx-backend \
+--protocol HTTP \
+--http-health-checks http-basic-check \
+--global
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 7:Create a backend service, and attach the managed instance group
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+$gcloud compute backend-services add-backend nginx-backend \
+--instance-group nginx-group \
+--instance-group-region us-east1 \
+--global
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 8:Create a URL map, and target the HTTP proxy to route requests to your URL map.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+$ gcloud compute url-maps create web-server-map \
+--default-service nginx-backend
+
+
+$ gcloud compute target-http-proxies create http-lb-proxy \
+--url-map web-server-map
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 9:Create a forwarding rule
+
+------------------------------------------------------------------------------------------------------------------------------------------------------
+
+$ gcloud compute forwarding-rules create http-content-rule \
+--global \
+--target-http-proxy http-lb-proxy \
+--ports 80
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 10:Computing forwarding-rules list
+
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+gcloud compute forwarding-rules list
