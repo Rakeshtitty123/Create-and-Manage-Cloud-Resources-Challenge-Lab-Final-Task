@@ -149,14 +149,20 @@ $ gcloud compute forwarding-rules create nginx-lb \
 --target-pool nginx-pool
 
 $ gcloud compute forwarding-rules list
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Part 6:Create a health check\
+
+--------------------------------------------------------------------------------------------------------------------------------------------
       
 $ gcloud compute http-health-checks create http-basic-check
 
 $ gcloud compute instance-groups managed set-named-ports nginx-group --named-ports http:80 --region us-east1
 
-------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------
 
-Part 6:Create a health check
+Part 7:Create a backend service, and attach the managed instance group
 
 --------------------------------------------------------------------------------------------------------------------------------------
 
@@ -165,11 +171,6 @@ $ gcloud compute backend-services create nginx-backend \
 --http-health-checks http-basic-check \
 --global
 
--------------------------------------------------------------------------------------------------------------------------------------------
-
-Part 7:Create a backend service, and attach the managed instance group
-
---------------------------------------------------------------------------------------------------------------------------------------------
 $gcloud compute backend-services add-backend nginx-backend \
 --instance-group nginx-group \
 --instance-group-region us-east1 \
