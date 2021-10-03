@@ -112,7 +112,7 @@ Part 3:Create a target pool
 
 $ gcloud compute target-pools create nginx-pool
 
-2.You will be prompted with yes/no in setting the default region.Selct no with n letter
+2.You will be prompted with yes/no in setting the default region.Select no with n letter
 
 n
 
@@ -183,12 +183,12 @@ Part 8:Create a URL map, and target the HTTP proxy to route requests to your URL
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-$ gcloud compute url-maps create web-server-map \
+$ gcloud compute url-maps create web-map-http \
 --default-service nginx-backend
 
 
 $ gcloud compute target-http-proxies create http-lb-proxy \
---url-map web-server-map
+--url-map web-http-map
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------
 
